@@ -1730,6 +1730,19 @@ class StockBuffer(models.Model):
             )
             if rule.procure_method == "make_to_stock":
                 return rule.location_src_id
+            elif rule.procure_method == "make_to_order":
+                # If resupply from another warehouse, this rule can't be retrieved by
+                # method _get_rule, because that we try to get this rule bases on previous rule
+                pull_rule = self.env["stock.rule"].search(
+                    [
+                        ("action", "in", ("pull", "pull_push")),
+                        ("procure_method", "=", "make_to_stock"),
+                        ("route_id", "=", rule.route_id.id),
+                        ("location_id", "=", rule.location_src_id.id),
+                    ]
+                )
+                if pull_rule:
+                    return pull_rule.location_src_id
             current_location = rule.location_src_id
 
     def action_dummy(self):

@@ -1737,13 +1737,21 @@ class StockBuffer(models.Model):
                 pull_rule = self.env["stock.rule"].search(
                     [
                         ("action", "in", ("pull", "pull_push")),
-                        ("procure_method", "=", "make_to_stock"),
                         ("route_id", "=", rule.route_id.id),
                         ("location_id", "=", rule.location_src_id.id),
                     ]
                 )
                 if pull_rule:
-                    return pull_rule.location_src_id
+                    if pull_rule.procure_method in ("make_to_stock", "mts_else_mto"):
+                        return pull_rule.location_src_id
+                    elif pull_rule.procure_method == "make_to_order":
+                        current_location = pull_rule.location_src_id
+                        rule_values.update(
+                            {
+                                "warehouse_id": pull_rule.location_src_id.get_warehouse(),
+                            }
+                        )
+                        continue
             current_location = rule.location_src_id
 
     def action_dummy(self):
